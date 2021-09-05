@@ -55,7 +55,7 @@ class GlobalConfig(BaseSettings):
         """Loads the dotenv file."""
 
         env_file = ".env"
-        env_prefix = 'ETH_CRAWLER_'
+        env_prefix = 'SANIC_'
         env_file_encoding = 'utf-8'
 
 class DevConfig(GlobalConfig):
@@ -64,7 +64,7 @@ class DevConfig(GlobalConfig):
     APP_DEBUG = True
 
     CASSANDRA_DATABASE: CassandraDatabase = CassandraDatabase(
-        NAME='eth-crawler-db',
+        NAME='sanic-db',
         USER='cassandra',
         PASSWORD='cassandra',
         KEYSPACE='cqlengine',
