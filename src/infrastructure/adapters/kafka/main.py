@@ -3,12 +3,10 @@ from infrastructure.adapters.kafka.kafka_event_producer import KafkaEventProduce
 from infrastructure.adapters.kafka.kafka_event_consumer import KafkaEventConsumer
 from core.ports.event_consumer import EventConsumer
 from core.ports.event_producer import EventProducer
-from infrastructure.configs.main import GlobalConfig, get_cnf
+from infrastructure.configs.main import GlobalConfig
 
 
-async def init_kafka():
-
-    config: GlobalConfig = get_cnf()
+async def init_kafka(config: GlobalConfig):
 
     producer: EventProducer = KafkaEventProducer(
         bootstrap_servers=config.KAFKA_PRODUCER.BOOTSTRAP_SERVERS,

@@ -29,7 +29,7 @@ async def init_app():
     
     init_db(config.CASSANDRA_DATABASE)
 
-    await init_kafka()
+    await init_kafka(config)
 
     app.error_handler = ExceptionInterceptor()
 
