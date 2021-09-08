@@ -10,3 +10,4 @@ class EntityBase(ABC, Model):
     id: columns.UUID(primary_key=True, default=uuid4)
     createdAt: columns.datetime
     updatedAt: columns.datetime
+    

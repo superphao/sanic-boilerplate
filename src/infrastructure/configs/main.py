@@ -4,10 +4,10 @@ from pydantic import (
     BaseModel
 )
 
-from typing import Optional
+from typing import List, Optional
 from enum import Enum, unique
 
-from pydantic.networks import AnyHttpUrl
+CNF = None
 
 @unique
 class EnvState(str, Enum):
@@ -15,6 +15,7 @@ class EnvState(str, Enum):
     dev = 'dev'
     prod = 'prod'
 
+@unique
 class ServerType(Enum):
 
     uvicorn = 'uvicorn'
@@ -27,6 +28,17 @@ class CassandraDatabase(BaseModel):
     USER: str = Field(None)
     KEYSPACE: str = Field(None)
     HOST: str = Field(None)
+
+class KafkaProducer(BaseModel):
+
+    BOOTSTRAP_SERVERS: List[str] = None
+    TOPICS: List[str] = None
+
+class KafkaConsumer(BaseModel):
+
+    BOOTSTRAP_SERVERS: List[str] = None
+    TOPICS: List[str] = None
+    GROUP: str = Field(None)
 
 class AppConfig(BaseModel):
     """Application configurations."""
@@ -50,6 +62,8 @@ class GlobalConfig(BaseSettings):
     SERVER_TYPE: str = None
 
     CASSANDRA_DATABASE: CassandraDatabase = CassandraDatabase()
+    KAFKA_CONSUMER: KafkaConsumer = KafkaConsumer()
+    KAFKA_PRODUCER: KafkaProducer = KafkaProducer()
 
     class Config:
         """Loads the dotenv file."""
@@ -63,13 +77,9 @@ class DevConfig(GlobalConfig):
 
     APP_DEBUG = True
 
-    CASSANDRA_DATABASE: CassandraDatabase = CassandraDatabase(
-        NAME='sanic-db',
-        USER='cassandra',
-        PASSWORD='cassandra',
-        KEYSPACE='cqlengine',
-        HOST='localhost'
-    )
+    CASSANDRA_DATABASE: CassandraDatabase
+    KAFKA_CONSUMER: KafkaConsumer
+    KAFKA_PRODUCER: KafkaProducer
 
     class Config:
         env_file = ".env.development"
@@ -83,7 +93,18 @@ class ProdConfig(GlobalConfig):
     class Config:
         env_file = ".env.production"
 
+def update_cnf(new_config):
 
+    import infrastructure.configs
+    
+    infrastructure.configs.CNF = new_config
+
+def get_cnf() -> GlobalConfig:
+
+    import infrastructure.configs
+    
+    return infrastructure.configs.CNF
+        
 class FactoryConfig:
     """Returns a config instance dependending on the ENV_STATE variable."""
 
@@ -92,7 +113,7 @@ class FactoryConfig:
         self.override_config = override_config
 
     def __call__(self):
-
+        
         config = None
         
         if self.env_state == EnvState.dev.value:
@@ -107,4 +128,6 @@ class FactoryConfig:
             config = DevConfig(**self.override_config)
             config.ENV_STATE = EnvState.dev.value
 
+        update_cnf(config)
+        
         return config
