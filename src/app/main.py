@@ -7,6 +7,8 @@ from infrastructure.configs import ServerType, get_cnf, GlobalConfig
 from infrastructure.interceptors.exeption_interceptor import ExceptionInterceptor
 from infrastructure.adapters.kafka.main import init_kafka
 
+from modules.background_tasks import init_background_tasks
+
 async def listener_before_server_start(*args, **kwargs):
     print("before_server_start")
     
@@ -30,6 +32,8 @@ async def init_app():
     init_db(config.CASSANDRA_DATABASE)
 
     await init_kafka(config)
+
+     init_background_tasks(app, config)
 
     app.error_handler = ExceptionInterceptor()
 

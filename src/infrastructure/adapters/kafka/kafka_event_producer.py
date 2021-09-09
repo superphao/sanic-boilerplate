@@ -12,7 +12,7 @@ class KafkaEventProducer(EventProducer):
     def __init__(
         self,
         bootstrap_servers,
-        topic,
+        topics,
         # group,
         log_service,
     ):
@@ -20,7 +20,7 @@ class KafkaEventProducer(EventProducer):
             log_service=log_service
         )
         self.bootstrap_servers = bootstrap_servers
-        self.topic = topic
+        self.topics = topics
         # self.group = group
 
         self.is_started = False
@@ -42,7 +42,7 @@ class KafkaEventProducer(EventProducer):
             )
 
         await self.producer.send_and_wait(
-            self.topic,
+            *self.topics,
             json.dumps(event.serialize()).encode()
         )
 
@@ -112,17 +112,10 @@ class KafkaEventProducer(EventProducer):
 
         await self.wait_for_connect()
 
-        # self.log_service.debug(
-        #     "Kafka event publisher connected to {} @ {}".
-        #     format(
-        #         self.topic,
-        #         self.bootstrap_servers
-        #     )
-        # )
         print(
             "Kafka event publisher connected to {} @ {}".
             format(
-                self.topic,
+                self.topics,
                 self.bootstrap_servers
             )
         )
