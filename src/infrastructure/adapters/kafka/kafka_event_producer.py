@@ -3,28 +3,24 @@ import json
 
 from aiokafka import AIOKafkaProducer
 
-from base import EventPublisher
+from core.ports.event_producer import EventProducer
 
-
-class KafkaEventPublisher(EventPublisher):
+class KafkaEventProducer(EventProducer):
     """
     A kafka event publisher.
     """
     def __init__(
         self,
         bootstrap_servers,
-        topic,
-        group,
+        topics,
         log_service,
-        keep_flushed_copies=False,
     ):
         super().__init__(
-            log_service=log_service,
-            keep_flushed_copies=keep_flushed_copies
+            log_service=log_service
         )
+
         self.bootstrap_servers = bootstrap_servers
-        self.topic = topic
-        self.group = group
+        self.topics = topics
 
         self.is_started = False
 
@@ -35,9 +31,6 @@ class KafkaEventPublisher(EventPublisher):
         Actually publishes the event,
         (called after request is done in the 'action' decorator).
         """
-        task_id = self._get_loop_task_id()
-
-        prefix = "[ -------- ]"
 
         if not self.producer:
             raise Exception(
@@ -51,14 +44,6 @@ class KafkaEventPublisher(EventPublisher):
             self.topic,
             json.dumps(event.serialize()).encode()
         )
-
-        if self.keep_flushed_copies:
-            if task_id not in self.flushed:
-                self.flushed[task_id] = []
-
-            self.flushed[task_id].append(event)
-
-    # Control
 
     async def start(self):
         await self.create_producer()
@@ -78,9 +63,8 @@ class KafkaEventPublisher(EventPublisher):
         else:
             await self.disconnect()
 
-    # Connect
-
     async def connect(self, retry_backoff=6, max_retries=12):
+        
         created = False
         error = None
         retry_backoff = retry_backoff
@@ -108,6 +92,7 @@ class KafkaEventPublisher(EventPublisher):
                 )
                 error = str(e)
                 retries += 1
+
                 await asyncio.sleep(retry_backoff)
 
         if not created:
@@ -125,17 +110,19 @@ class KafkaEventPublisher(EventPublisher):
             )
 
         await self.wait_for_connect()
-
-        self.log_service.debug(
+        
+        print(
             "Kafka event publisher connected to {} @ {}".
             format(
-                self.topic,
+                self.topics,
                 self.bootstrap_servers
             )
         )
 
     async def disconnect(self):
+        
         await self.producer.stop()
+
         self.producer_connected = False
 
     async def wait_for_connect(self, timeout=60):
@@ -150,8 +137,6 @@ class KafkaEventPublisher(EventPublisher):
                         timeout
                     )
                 )
-
-    # Publishing
 
     async def create_producer(self):
         self.producer = AIOKafkaProducer(

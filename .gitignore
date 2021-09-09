@@ -3,3 +3,7 @@ __pycache__/
 docker/data/
 .pytest_cache/
 dump.rdb
+.venv
+.env.development
+.env.production
+.env.shared
