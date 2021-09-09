@@ -19,7 +19,3 @@ class DomainEvent(ABC, BaseModel):
     @property
     def date_occurred(self):
         return self.__date_occurred
-
-    @abstractmethod
-    def serialize(self):
-        pass

@@ -17,9 +17,9 @@ from uvicorn.config import (
 from uvicorn.server import Server
 from uvicorn.supervisors import ChangeReload, Multiprocess
 
-from infrastructure.configs import FactoryConfig, EnvState, get_cnf
-
+from infrastructure.configs import FactoryConfig, EnvState
 from commands import cli, click
+from enum import Enum
 
 import aiotask_context as context
 
@@ -43,10 +43,6 @@ class UvicornServer(BaseServer):
     @classmethod
     def run(cls, app):
 
-        @app.route('/')
-        def test(request):
-            pass
-        
         cls.server = cls.__run(
             app=app,
             host=app.config["APP_HOST"],
@@ -95,6 +91,7 @@ class SanicBuiltInServer(BaseServer):
             host=app.config["APP_HOST"],
             port=app.config["APP_PORT"],
             debug=app.config["APP_DEBUG"],
+            workers=app.config["APP_WORKERS"],
             access_log=app.config["ACCESS_LOG"],
             return_asyncio_server=True
         )
@@ -126,7 +123,7 @@ def run_server(
     server_type, 
     lifespan
 ):
-
+        
     overwrite_args = {}
     
     if host is not None:
@@ -161,10 +158,12 @@ def run_server(
 
         overwrite_args['APP_LIFESPAN'] = lifespan
         
-    FactoryConfig(env, overwrite_args)()
+    config = FactoryConfig(env, overwrite_args)()
     
-    app = asyncio.run(init_app())
-    
+    app = init_app(server_type, config)
+
+    app.config.update_config(config.dict())
+        
     if server_type == ServerType.uvicorn.value:
         
         UvicornServer.run(app)
@@ -172,3 +171,5 @@ def run_server(
     else: 
 
         SanicBuiltInServer.run(app)
+
+        

@@ -17,6 +17,3 @@ def first_index(iterable, default = None, condition = lambda x: True):
             return default
         else:
             raise
-
-def convert_props_to_object(self):
-    pass

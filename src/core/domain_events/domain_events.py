@@ -1,11 +1,11 @@
 from core.base_classes.aggregate_root import AggregateRoot
 from core.ports import Logger
 from core.domain_events.base import DomainEvent
-from typing import Any, Awaitable, Callable, Dict, List, TypeVar, Union, final
+from typing import Any, Callable, Dict, List, TypeVar, Union, final
 from core.value_objects.id import ID 
-import asyncio
 
-from asyncio import Task
+from asyncio import Future
+import asyncio
 
 from abc import ABC, abstractmethod 
 
@@ -15,7 +15,7 @@ class EventHandler(ABC):
     def subscribeTo(event: DomainEvent):
         ...
 
-EventCallback = Callable[[DomainEvent], Awaitable] 
+EventCallback = Callable[[DomainEvent], Future] 
 
 EventName = str
 
@@ -59,7 +59,7 @@ class DomainEvents():
         cls,
         id: ID,
         logger: Logger
-    ) -> Task:
+    ) -> Future:
 
         aggregate = cls.find_aggregate_by_id(id)
 

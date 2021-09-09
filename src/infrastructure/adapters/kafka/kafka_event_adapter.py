@@ -3,15 +3,15 @@ import json
 
 from aiokafka import AIOKafkaConsumer
 
-from core.ports.event_consumer import EventConsumer
+from ddd.adapters.event.event_adapter import EventAdapter
 
 
-class KafkaEventConsumer(EventConsumer):
+class KafkaEventAdapter(EventAdapter):
 
     def __init__(
         self,
         bootstrap_servers,
-        topics,
+        topic,
         group,
         log_service,
         service=None,
@@ -24,20 +24,23 @@ class KafkaEventConsumer(EventConsumer):
         )
 
         self.bootstrap_servers = bootstrap_servers
-        self.topics = topics
+        self.topic = topic
         self.group = group
 
         self.consumer_connected = False
         self.consumer_stopped = False
         self.consuming = False
 
+    # Handling
+
     async def handle(self, message):
         """
         Handle a message.
         """
         message = json.loads(message.value)
-
         await super().handle(message)
+
+    # Control
 
     async def start(self):
         await self._create_consumer()
@@ -51,7 +54,7 @@ class KafkaEventConsumer(EventConsumer):
     async def _create_consumer(self):
         self.consumer = \
             AIOKafkaConsumer(
-                *self.topics,
+                self.topic,
                 loop=asyncio.get_event_loop(),
                 bootstrap_servers=self.bootstrap_servers,
                 group_id=self.group,
@@ -59,7 +62,6 @@ class KafkaEventConsumer(EventConsumer):
             )
 
     async def _connect(self):
-
         created = False
         error = None
         backoff = 6
@@ -103,15 +105,20 @@ class KafkaEventConsumer(EventConsumer):
 
         await self._wait_for_connect()
 
-    async def _wait_for_connect(self, timeout=60):
-        
-        waited = 0
+        self.log_service.debug(
+            "Kafka event adapter listens on {} @ {}, (group: {})".
+                format(
+                self.topic,
+                self.bootstrap_servers,
+                self.group
+            )
+        )
 
+    async def _wait_for_connect(self, timeout=60):
+        waited = 0
         while not self.consumer_connected:
-            
             await asyncio.sleep(1)
             waited = waited + 1
-
             if waited > timeout:
                 raise Exception(
                     "Couldn't connect to kafka, timed out after {} secs".
@@ -135,17 +142,14 @@ class KafkaEventConsumer(EventConsumer):
                     self.consumer.__anext__(),
                     timeout=3
                 )
-                print(message)
                 try:
-                    print(message)
                     await self.handle(message)
                 except Exception as e:
-                    # self.log_service.error(
-                    #     f"Kafka Event Adapter got exception when "
-                    #     f"delegating call to service: '{str(e)}'.",
-                    #     exc_info=True,
-                    # )
-                    print(e)
+                    self.log_service.error(
+                        f"Kafka Event Adapter got exception when "
+                        f"delegating call to service: '{str(e)}'.",
+                        exc_info=True,
+                    )
                 await self.consumer.commit()
             except asyncio.TimeoutError:
                 pass
@@ -157,14 +161,10 @@ class KafkaEventConsumer(EventConsumer):
         await self.wait_for_consumption_to_stop()
 
     async def wait_for_consumption_to_stop(self, timeout=60):
-        
         waited = 0
-
         while self.consuming:
-
             await asyncio.sleep(1)
             waited = waited + 1
-
             if waited > timeout:
                 raise Exception(
                     (
@@ -178,19 +178,13 @@ class KafkaEventConsumer(EventConsumer):
     async def _disconnect(self):
         # Will leave consumer group; perform autocommit if enabled.
         await self.consumer.stop()
-
         self.consumer_connected = False
 
     async def _wait_for_disconnect(self, timeout=60):
-        
         waited = 0
-
         while self.consumer_connected:
-
             await asyncio.sleep(1)
-            
             waited = waited + 1
-            
             if waited > timeout:
                 raise Exception(
                     (

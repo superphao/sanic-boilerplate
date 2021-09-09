@@ -2,16 +2,17 @@ from abc import ABC, abstractmethod, abstractproperty
 from typing import (Dict, Optional, Any)
 from pydantic import BaseModel
 from pydantic.fields import PrivateAttr
+from core.exceptions.type import Exceptions
 import traceback
 
-class SerializedException(BaseModel):
+class SerializedException(BaseModel, ABC):
 
     name: str
     message: str
     stack: Optional[str]
     metadata: Optional[Dict[str, Any]]
 
-class ExceptionBase(BaseException):
+class ExceptionBase(BaseModel, ABC):
 
     __name: str = PrivateAttr()
 

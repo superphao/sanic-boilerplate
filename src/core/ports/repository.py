@@ -6,6 +6,8 @@ from core.value_objects.id import ID
 from abc import ABC, abstractmethod
 from typing import Generic, List, Optional, TypeVar, Awaitable, Any, Union, Dict
 
+from asyncio import Future
+
 Entity = TypeVar('Entity')
 EntityProps = TypeVar('EntityProps')
 T = TypeVar('T')
