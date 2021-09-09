@@ -3,10 +3,10 @@ import json
 
 from aiokafka import AIOKafkaConsumer
 
-from ddd.adapters.event.event_adapter import EventAdapter
+from core.ports.event_consumer import EventConsumer
 
 
-class KafkaEventAdapter(EventAdapter):
+class KafkaEventConsumer(EventConsumer):
 
     def __init__(
         self,
@@ -31,16 +31,12 @@ class KafkaEventAdapter(EventAdapter):
         self.consumer_stopped = False
         self.consuming = False
 
-    # Handling
-
     async def handle(self, message):
         """
         Handle a message.
         """
         message = json.loads(message.value)
         await super().handle(message)
-
-    # Control
 
     async def start(self):
         await self._create_consumer()
@@ -62,6 +58,7 @@ class KafkaEventAdapter(EventAdapter):
             )
 
     async def _connect(self):
+
         created = False
         error = None
         backoff = 6
@@ -105,20 +102,24 @@ class KafkaEventAdapter(EventAdapter):
 
         await self._wait_for_connect()
 
-        self.log_service.debug(
-            "Kafka event adapter listens on {} @ {}, (group: {})".
-                format(
-                self.topic,
-                self.bootstrap_servers,
-                self.group
-            )
-        )
+        # self.log_service.debug(
+        #     "Kafka event adapter listens on {} @ {}, (group: {})".
+        #         format(
+        #         self.topic,
+        #         self.bootstrap_servers,
+        #         self.group
+        #     )
+        # )
 
     async def _wait_for_connect(self, timeout=60):
+        
         waited = 0
+
         while not self.consumer_connected:
+            
             await asyncio.sleep(1)
             waited = waited + 1
+
             if waited > timeout:
                 raise Exception(
                     "Couldn't connect to kafka, timed out after {} secs".
@@ -142,14 +143,17 @@ class KafkaEventAdapter(EventAdapter):
                     self.consumer.__anext__(),
                     timeout=3
                 )
+                print(message)
                 try:
+                    print(message)
                     await self.handle(message)
                 except Exception as e:
-                    self.log_service.error(
-                        f"Kafka Event Adapter got exception when "
-                        f"delegating call to service: '{str(e)}'.",
-                        exc_info=True,
-                    )
+                    # self.log_service.error(
+                    #     f"Kafka Event Adapter got exception when "
+                    #     f"delegating call to service: '{str(e)}'.",
+                    #     exc_info=True,
+                    # )
+                    print(e)
                 await self.consumer.commit()
             except asyncio.TimeoutError:
                 pass
@@ -161,10 +165,14 @@ class KafkaEventAdapter(EventAdapter):
         await self.wait_for_consumption_to_stop()
 
     async def wait_for_consumption_to_stop(self, timeout=60):
+        
         waited = 0
+
         while self.consuming:
+
             await asyncio.sleep(1)
             waited = waited + 1
+
             if waited > timeout:
                 raise Exception(
                     (
@@ -178,13 +186,19 @@ class KafkaEventAdapter(EventAdapter):
     async def _disconnect(self):
         # Will leave consumer group; perform autocommit if enabled.
         await self.consumer.stop()
+
         self.consumer_connected = False
 
     async def _wait_for_disconnect(self, timeout=60):
+        
         waited = 0
+
         while self.consumer_connected:
+
             await asyncio.sleep(1)
+            
             waited = waited + 1
+            
             if waited > timeout:
                 raise Exception(
                     (

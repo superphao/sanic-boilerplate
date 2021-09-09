@@ -5,3 +5,5 @@ aiotask_context
 pydantic
 uvicorn
 python-dotenv
+cassandra-driver
+aiohttp
